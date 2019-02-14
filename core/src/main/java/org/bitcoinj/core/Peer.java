@@ -30,6 +30,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import net.jcip.annotations.GuardedBy;
 import org.slf4j.Logger;
@@ -811,7 +812,7 @@ public class Peer extends PeerSocketHandler {
                                     log.error("Error was: ", throwable);
                                     // Not much more we can do at this point.
                                 }
-                            });
+                            }, MoreExecutors.directExecutor());
                         } else {
                             wallet.receivePending(tx, null);
                         }
@@ -871,7 +872,7 @@ public class Peer extends PeerSocketHandler {
             public void onFailure(Throwable throwable) {
                 resultFuture.setException(throwable);
             }
-        });
+        }, MoreExecutors.directExecutor());
         return resultFuture;
     }
 
@@ -935,7 +936,7 @@ public class Peer extends PeerSocketHandler {
                             public void onFailure(Throwable throwable) {
                                 resultFuture.setException(throwable);
                             }
-                        });
+                        }, MoreExecutors.directExecutor());
                     }
                 }
 
@@ -943,7 +944,7 @@ public class Peer extends PeerSocketHandler {
                 public void onFailure(Throwable throwable) {
                     resultFuture.setException(throwable);
                 }
-            });
+            }, MoreExecutors.directExecutor());
             // Start the operation.
             sendMessage(getdata);
         } catch (Exception e) {
