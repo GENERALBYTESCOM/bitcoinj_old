@@ -20,8 +20,7 @@ package org.bitcoinj.script;
 import org.bitcoinj.core.LegacyAddress;
 import org.bitcoinj.core.SegwitAddress;
 import org.bitcoinj.core.Sha256Hash;
-
-import com.google.common.io.BaseEncoding;
+import org.bitcoinj.core.Utils;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -279,14 +278,13 @@ public class ScriptPattern {
         return chunks.size() > 0 && chunks.get(0).equalsOpCode(ScriptOpCodes.OP_RETURN);
     }
 
-    private static final BaseEncoding HEX = BaseEncoding.base16().lowerCase();
-    private static final byte[] SEGWIT_COMMITMENT_HEADER = HEX.decode("aa21a9ed");
+    private static final byte[] SEGWIT_COMMITMENT_HEADER = Utils.HEX.decode("aa21a9ed");
 
     /**
      * Returns whether this script matches the pattern for a segwit commitment (in an output of the coinbase
      * transaction).
      */
-    public static boolean isSegwitCommitment(Script script) {
+    public static boolean isWitnessCommitment(Script script) {
         List<ScriptChunk> chunks = script.chunks;
         if (chunks.size() < 2)
             return false;
@@ -303,7 +301,7 @@ public class ScriptPattern {
     /**
      * Retrieves the hash from a segwit commitment (in an output of the coinbase transaction).
      */
-    public static Sha256Hash extractSegwitCommitmentHash(Script script) {
+    public static Sha256Hash extractWitnessCommitmentHash(Script script) {
         return Sha256Hash.wrap(Arrays.copyOfRange(script.chunks.get(1).data, 4, 36));
     }
 }

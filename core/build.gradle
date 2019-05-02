@@ -3,7 +3,7 @@ apply plugin: 'com.google.protobuf'
 apply plugin: 'maven'
 apply plugin: 'eclipse'
 
-version = '0.15-SNAPSHOT'
+version = '0.15.1.20190411'
 archivesBaseName = 'bitcoinj-core'
 eclipse.project.name = 'bitcoinj-core'
 
@@ -29,11 +29,17 @@ compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
 protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.6.1'
+    }
     generatedFilesBaseDir = new File(projectDir, '/src') // workaround for '$projectDir/src'
 }
 
 test {
+    exclude 'org/bitcoinj/core/PeerTest*'
+    exclude 'org/bitcoinj/core/TransactionBroadcastTest*'
     exclude 'org/bitcoinj/net/NetworkAbstractionTests*'
+    exclude 'org/bitcoinj/protocols/channels/ChannelConnectionTest*'
     testLogging {
         events "failed"
         exceptionFormat "full"

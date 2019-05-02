@@ -41,22 +41,9 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
 
     private final byte[] bytes;
 
-    /**
-     * Use {@link #wrap(byte[])} instead.
-     */
-    @Deprecated
-    public Sha256Hash(byte[] rawHashBytes) {
+    private Sha256Hash(byte[] rawHashBytes) {
         checkArgument(rawHashBytes.length == LENGTH);
         this.bytes = rawHashBytes;
-    }
-
-    /**
-     * Use {@link #wrap(String)} instead.
-     */
-    @Deprecated
-    public Sha256Hash(String hexString) {
-        checkArgument(hexString.length() == LENGTH * 2);
-        this.bytes = Utils.HEX.decode(hexString);
     }
 
     /**
@@ -66,7 +53,6 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      * @return a new instance
      * @throws IllegalArgumentException if the given array length is not exactly 32
      */
-    @SuppressWarnings("deprecation") // the constructor will be made private in the future
     public static Sha256Hash wrap(byte[] rawHashBytes) {
         return new Sha256Hash(rawHashBytes);
     }
@@ -90,15 +76,8 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      * @return a new instance
      * @throws IllegalArgumentException if the given array length is not exactly 32
      */
-    @SuppressWarnings("deprecation") // the constructor will be made private in the future
     public static Sha256Hash wrapReversed(byte[] rawHashBytes) {
         return wrap(Utils.reverseBytes(rawHashBytes));
-    }
-
-    /** Use {@link #of(byte[])} instead: this old name is ambiguous. */
-    @Deprecated
-    public static Sha256Hash create(byte[] contents) {
-        return of(contents);
     }
 
     /**
@@ -111,12 +90,6 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         return wrap(hash(contents));
     }
 
-    /** Use {@link #twiceOf(byte[])} instead: this old name is ambiguous. */
-    @Deprecated
-    public static Sha256Hash createDouble(byte[] contents) {
-        return twiceOf(contents);
-    }
-
     /**
      * Creates a new instance containing the hash of the calculated hash of the given bytes.
      *
@@ -125,6 +98,17 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      */
     public static Sha256Hash twiceOf(byte[] contents) {
         return wrap(hashTwice(contents));
+    }
+
+    /**
+     * Creates a new instance containing the hash of the calculated hash of the given bytes.
+     *
+     * @param content1 first bytes on which the hash value is calculated
+     * @param content2 second bytes on which the hash value is calculated
+     * @return a new instance containing the calculated (two-time) hash
+     */
+    public static Sha256Hash twiceOf(byte[] content1, byte[] content2) {
+        return wrap(hashTwice(content1, content2));
     }
 
     /**
@@ -194,6 +178,17 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      */
     public static byte[] hashTwice(byte[] input) {
         return hashTwice(input, 0, input.length);
+    }
+
+    /**
+     * Calculates the hash of hash on the given chunks of bytes. This is equivalent to concatenating the two
+     * chunks and then passing the result to {@link #hashTwice(byte[])}.
+     */
+    public static byte[] hashTwice(byte[] input1, byte[] input2) {
+        MessageDigest digest = newDigest();
+        digest.update(input1);
+        digest.update(input2);
+        return digest.digest(digest.digest());
     }
 
     /**

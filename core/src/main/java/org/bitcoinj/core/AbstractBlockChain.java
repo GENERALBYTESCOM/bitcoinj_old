@@ -199,27 +199,6 @@ public abstract class AbstractBlockChain {
         removeTransactionReceivedListener(wallet);
     }
 
-    /** Replaced with more specific listener methods: use them instead. */
-    @Deprecated @SuppressWarnings("deprecation")
-    public void addListener(BlockChainListener listener) {
-        addListener(listener, Threading.USER_THREAD);
-    }
-
-    /** Replaced with more specific listener methods: use them instead. */
-    @Deprecated
-    public void addListener(BlockChainListener listener, Executor executor) {
-        addReorganizeListener(executor, listener);
-        addNewBestBlockListener(executor, listener);
-        addTransactionReceivedListener(executor, listener);
-    }
-
-    @Deprecated
-    public void removeListener(BlockChainListener listener) {
-        removeReorganizeListener(listener);
-        removeNewBestBlockListener(listener);
-        removeTransactionReceivedListener(listener);
-    }
-
     /**
      * Adds a {@link NewBestBlockListener} listener to the chain.
      */
@@ -480,6 +459,7 @@ public abstract class AbstractBlockChain {
                 // block was solved whilst we were doing it. We put it to one side and try to connect it later when we
                 // have more blocks.
                 checkState(tryConnecting, "bug in tryConnectingOrphans");
+                tryConnectingOrphans(); // tryConnecting is true, see checkState above
                 log.warn("Block does not connect: {} prev {}", block.getHashAsString(), block.getPrevBlockHash());
                 orphanBlocks.put(block.getHash(), new OrphanBlock(block, filteredTxHashList, filteredTxn));
                 return false;
@@ -488,10 +468,11 @@ public abstract class AbstractBlockChain {
                 // It connects to somewhere on the chain. Not necessarily the top of the best known chain.
                 params.checkDifficultyTransitions(storedPrev, block, blockStore);
                 connectBlock(block, storedPrev, shouldVerifyTransactions(), filteredTxHashList, filteredTxn);
-            }
 
-            if (tryConnecting)
-                tryConnectingOrphans();
+                if (tryConnecting) {
+                    tryConnectingOrphans();
+                }
+            }
 
             return true;
         } finally {

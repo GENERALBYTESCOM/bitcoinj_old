@@ -262,42 +262,6 @@ public class Peer extends PeerSocketHandler {
         this.versionMessage.appendToSubVer(thisSoftwareName, thisSoftwareVersion, null);
     }
 
-    /** Deprecated: use the more specific event handler methods instead */
-    @Deprecated @SuppressWarnings("deprecation")
-    public void addEventListener(AbstractPeerEventListener listener) {
-        addBlocksDownloadedEventListener(Threading.USER_THREAD, listener);
-        addChainDownloadStartedEventListener(Threading.USER_THREAD, listener);
-        addConnectedEventListener(Threading.USER_THREAD, listener);
-        addDisconnectedEventListener(Threading.USER_THREAD, listener);
-        addGetDataEventListener(Threading.USER_THREAD, listener);
-        addOnTransactionBroadcastListener(Threading.USER_THREAD, listener);
-        addPreMessageReceivedEventListener(Threading.USER_THREAD, listener);
-    }
-
-    /** Deprecated: use the more specific event handler methods instead */
-    @Deprecated
-    public void addEventListener(AbstractPeerEventListener listener, Executor executor) {
-        addBlocksDownloadedEventListener(executor, listener);
-        addChainDownloadStartedEventListener(executor, listener);
-        addConnectedEventListener(executor, listener);
-        addDisconnectedEventListener(executor, listener);
-        addGetDataEventListener(executor, listener);
-        addOnTransactionBroadcastListener(executor, listener);
-        addPreMessageReceivedEventListener(executor, listener);
-    }
-
-    /** Deprecated: use the more specific event handler methods instead */
-    @Deprecated
-    public void removeEventListener(AbstractPeerEventListener listener) {
-        removeBlocksDownloadedEventListener(listener);
-        removeChainDownloadStartedEventListener(listener);
-        removeConnectedEventListener(listener);
-        removeDisconnectedEventListener(listener);
-        removeGetDataEventListener(listener);
-        removeOnTransactionBroadcastListener(listener);
-        removePreMessageReceivedEventListener(listener);
-    }
-
     /** Registers a listener that is invoked when new blocks are downloaded. */
     public void addBlocksDownloadedEventListener(BlocksDownloadedEventListener listener) {
         addBlocksDownloadedEventListener(Threading.USER_THREAD, listener);
@@ -1249,6 +1213,11 @@ public class Peer extends PeerSocketHandler {
             } else {
                 log.debug("{}: getdata on tx {}", getAddress(), item.hash);
                 getdata.addTransaction(item.hash, vPeerVersionMessage.isWitnessSupported());
+                if (pendingTxDownloads.size() > 100) {
+                    log.info("{}: Too many pending transactions, disconnecting", this);
+                    close();
+                    return;
+                }
                 // Register with the garbage collector that we care about the confidence data for a while.
                 pendingTxDownloads.add(conf);
             }
@@ -1532,23 +1501,23 @@ public class Peer extends PeerSocketHandler {
 
     private class PendingPing {
         // The future that will be invoked when the pong is heard back.
-        public SettableFuture<Long> future;
+        public final SettableFuture<Long> future;
         // The random nonce that lets us tell apart overlapping pings/pongs.
         public final long nonce;
         // Measurement of the time elapsed.
         public final long startTimeMsec;
 
         public PendingPing(long nonce) {
-            future = SettableFuture.create();
+            this.future = SettableFuture.create();
             this.nonce = nonce;
-            startTimeMsec = Utils.currentTimeMillis();
+            this.startTimeMsec = Utils.currentTimeMillis();
         }
 
         public void complete() {
             if (!future.isDone()) {
-                Long elapsed = Utils.currentTimeMillis() - startTimeMsec;
+                long elapsed = Utils.currentTimeMillis() - startTimeMsec;
                 Peer.this.addPingTimeData(elapsed);
-                log.debug("{}: ping time is {} msec", Peer.this.toString(), elapsed);
+                log.debug("{}: ping time is {} ms", Peer.this.toString(), elapsed);
                 future.set(elapsed);
             }
         }
@@ -1588,6 +1557,10 @@ public class Peer extends PeerSocketHandler {
         final VersionMessage ver = vPeerVersionMessage;
         if (!ver.isPingPongSupported())
             throw new ProtocolException("Peer version is too low for measurable pings: " + ver);
+        if (pendingPings.size() > 50) {
+            log.info("{}: Too many pending pings, disconnecting", this);
+            close();
+        }
         PendingPing pendingPing = new PendingPing(nonce);
         pendingPings.add(pendingPing);
         sendMessage(new Ping(pendingPing.nonce));
